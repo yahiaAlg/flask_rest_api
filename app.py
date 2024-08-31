@@ -4,9 +4,6 @@ from flask_smorest import abort
 
 app = Flask(__name__)
 
-stores = {}
-items = {}
-
 
 # @app.post("/store")
 # def create_store():
@@ -42,106 +39,19 @@ items = {}
 #         if store["name"] == name:
 #             return store["items"], 200
 # abort(404,    return "Store not found")
-@app.get("/stores")
-def get_stores():
-    return list(stores.values())
+from db import stores, items
+from flask import Flask
+from flask_smorest import abort, Api
 
 
-@app.get("/store")
-def get_store():
-    store_data = request.get_json()
-    store_id = store_data["store_id"]
-    if store_id in stores:
-        return stores[store_id]
-    return abort(404, message=f"no store with an id of {store_id}")
+app = Flask(__name__)
+app.config["PROPAGATE_EXCEPTIONS"] = True
+app.config["API_TITLE"] = "Store API"
+app.config["API_VERSION"] = "v1.0"
+app.config["OPENAPI_VERSION"] = "3.0.2"
 
+app.config["OPENAPI_URL_PREFIX"] = "/"
+app.config["OPENAIPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
 
-@app.post("/store")
-def create_store():
-    store_data = request.get_json()
-    store_id = uuid.uuid4().hex
-    new_store = {**store_data, "store_id": store_id}
-    stores[store_id] = new_store
-    return new_store, 201
-
-
-@app.put("/store")
-def update_store():
-    store_id = request.json["store_id"]
-    if store_id not in stores:
-        return abort(404, message=f"no such a store with an id of {store_id}")
-    required_fields = ["name", "store_id"]
-    store_data = request.get_json()
-    if not all(field in store_data for field in required_fields):
-        return abort(400, message="missing required fields")
-    stores[store_id] |= store_data
-    return stores[store_id], 201
-
-
-@app.delete("/store")
-def delete_store():
-    store_id = request.json["store_id"]
-    if store_id not in stores:
-        return abort(404, f"no such a store with an id of {store_id}")
-    del stores[store_id]
-    return f"store with id {store_id} has been deleted", 200
-
-
-@app.get("/items")
-def get_items():
-    return list(items.values())
-
-
-@app.get("/item/<string:item_id>")
-def get_item(item_id):
-    try:
-        return items[item_id]
-    except KeyError:
-        return abort(404, message="item not found")
-
-
-@app.post("/item")
-def create_item():
-    required_fields = [
-        "name",
-        "price",
-        "store_id",
-        "description",
-        "category",
-    ]
-    item_data = request.get_json()
-    if not all(field in item_data for field in required_fields):
-        return abort(400, massage="missing required fields")
-    store_id = item_data["store_id"]
-    if store_id not in stores:
-        return abort(404, message=f"no such a store with an id of {store_id}")
-    item_id = uuid.uuid4().hex
-    new_item = {**item_data, "item_id": item_id}
-    items[item_id] = new_item
-    return new_item, 201
-
-
-@app.put("/item/<string:id>")
-def update_item(id):
-    if id not in items:
-        return abort(404, message=f"no item with an id of {id}")
-    permitted_fields = [
-        "name",
-        "price",
-        "store_id",
-        "description",
-        "category",
-    ]
-    item_data = request.get_json()
-    if not all(field in permitted_fields for field in item_data):
-        return abort(400, message="not permitted fields")
-    items[id] |= item_data
-    return items[id], 201
-
-
-@app.delete("/item/<string:id>")
-def delete_item(id):
-    if id not in items:
-        return abort(404, message=f"no item with an id of {id}")
-    del items[id]
-    return f"item with id {id} has been deleted", 200
+app = Api(app)
+app.register_blueprint()
