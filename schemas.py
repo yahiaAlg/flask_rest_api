@@ -4,7 +4,7 @@ from marshmallow import fields, Schema
 class PlainStoreSchema(Schema):
     # consist of id,name
 
-    id = fields.Str(dump_only=True)
+    id = fields.Int(dump_only=True)
     name = fields.Str(required=True)
 
 
@@ -17,13 +17,14 @@ class StoreSchema(PlainStoreSchema):
 
 class StoreUpdateSchema(Schema):
     # consist of name
+    id = fields.Int(required=True)
     name = fields.Str()
 
 
 class PlainItemSchema(Schema):
     # consist of id,name,category,description,price, store_id
 
-    id = fields.Str(dump_only=True)
+    id = fields.Int(dump_only=True)
     name = fields.Str(required=True)
     category = fields.Str(required=True)
     description = fields.Str(default="")

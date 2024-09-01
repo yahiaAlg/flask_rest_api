@@ -24,7 +24,7 @@ class Item(MethodView):
         item = ItemModel.query.get(id)
         try:
             if item:
-                for key in item:
+                for key in item_data:
                     setattr(item, key, item_data.get(key))
             else:
                 item = ItemModel(id=id, **item_data)  # type: ignore

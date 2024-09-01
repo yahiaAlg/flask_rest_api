@@ -39,11 +39,18 @@ class Store(MethodView):
     @blp.arguments(StoreUpdateSchema)
     @blp.response(201, StoreSchema)
     def put(self, store_data: dict):
-        store_id = store_data.get(id)
+        store_id = store_data.get("id")
+        if not store_id:
+            abort(400, message="Store ID is required")
+        if not store_data.get("name"):
+            abort(400, message="Store name is required")
+        logging.info(f" Store ID is required  {store_id}")
+
         new_store = StoreModel.query.get(store_id)
+        logging.info(f" Store is:  {new_store.__dict__}")
         try:
             if new_store:
-                for key in new_store:
+                for key in store_data:
                     setattr(new_store, key, store_data.get(key))
 
             else:
@@ -52,18 +59,23 @@ class Store(MethodView):
 
             db.session.commit()
             return new_store
-
+        except IntegrityError:
+            abort(400, message="Store already with the same name already exists")
         except SQLAlchemyError:
             db.session.rollback()
             abort(400, message="An error occurred while updating the item")
 
     def delete(self):
-        store_id = request.json["id"]  # type: ignore
+        store_id = request.json["id"]
+        if not store_id:
+            abort(400, message="Store ID is required")
         store = StoreModel.query.get_or_404(store_id)
         try:
             db.session.delete(store)
             db.session.commit()
+            return {"message": "Store deleted successfully"}, 200
         except SQLAlchemyError:
+            db.session.rollback()
             abort(400, message="An error occurred while deleting the store")
 
 
