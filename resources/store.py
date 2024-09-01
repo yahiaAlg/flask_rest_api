@@ -2,47 +2,73 @@ import uuid
 from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from db import stores
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
+from schemas import StoreSchema, StoreUpdateSchema
+from models import StoreModel
+from db import db
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
 blp = Blueprint("stores", __name__, description="Operations on stores")
 
 
 @blp.route("/store")
 class Store(MethodView):
+    @blp.response(200, StoreSchema)
     def get(self):
         store_data = request.get_json()
-        store_id = store_data["store_id"]
-        if store_id in stores:
-            return stores[store_id]
-        return abort(404, message=f"no store with an id of {store_id}")
+        store_id = store_data["id"]
+        store = StoreModel.query.get_or_404(store_id)
+        return store
 
-    def post(self):
-        store_data = request.get_json()
-        store_id = uuid.uuid4().hex
-        new_store = {**store_data, "store_id": store_id}
-        stores[store_id] = new_store
-        return new_store, 201
+    @blp.arguments(StoreSchema)
+    @blp.response(201, StoreSchema)
+    def post(self, store_data: dict):
+        store = StoreModel(**store_data)
+        try:
+            db.session.add(store)
+            db.session.commit()
+            return store, 201
+        except IntegrityError:
+            abort(400, message="Store already exists")
+        except SQLAlchemyError:
+            abort(400, message="An error occurred while creating the store")
 
-    def put(self):
-        store_id = request.json["store_id"]
-        if store_id not in stores:
-            return abort(404, message=f"no such a store with an id of {store_id}")
-        required_fields = ["name", "store_id"]
-        store_data = request.get_json()
-        if not all(field in store_data for field in required_fields):
-            return abort(400, message="missing required fields")
-        stores[store_id] |= store_data
-        return stores[store_id], 201
+    @blp.arguments(StoreUpdateSchema)
+    @blp.response(201, StoreSchema)
+    def put(self, store_data: dict):
+        store_id = store_data.get(id)
+        new_store = StoreModel.query.get(store_id)
+        try:
+            if new_store:
+                for key in new_store:
+                    setattr(new_store, key, store_data.get(key))
+
+            else:
+                new_store = StoreModel(**store_data)
+                db.session.add(new_store)
+
+            db.session.commit()
+            return new_store
+
+        except SQLAlchemyError:
+            db.session.rollback()
+            abort(400, message="An error occurred while updating the item")
 
     def delete(self):
-        store_id = request.json["store_id"]
-        if store_id not in stores:
-            return abort(404, f"no such a store with an id of {store_id}")
-        del stores[store_id]
-        return f"store with id {store_id} has been deleted", 200
+        store_id = request.json["id"]  # type: ignore
+        store = StoreModel.query.get_or_404(store_id)
+        try:
+            db.session.delete(store)
+            db.session.commit()
+        except SQLAlchemyError:
+            abort(400, message="An error occurred while deleting the store")
 
 
 @blp.route("/stores")
 class StoreList(MethodView):
+    @blp.response(200, StoreSchema(many=True))
     def get(self):
-        return list(stores.values())
+        return StoreModel.query.all()
