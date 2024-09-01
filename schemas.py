@@ -13,11 +13,33 @@ class StoreSchema(PlainStoreSchema):
         fields.Nested(lambda: PlainItemSchema()),
         dump_only=True,
     )
+    tags = fields.List(
+        fields.Nested(lambda: PlainTagSchema()),
+        dump_only=True,
+    )
 
 
 class StoreUpdateSchema(Schema):
     # consist of name
     id = fields.Int(required=True)
+    name = fields.Str()
+
+
+class PlainTagSchema(Schema):
+    # consist of id,name
+
+    id = fields.Int(dump_only=True)
+    name = fields.Str(required=True)
+
+
+class TagSchema(PlainTagSchema):
+    store_id = fields.Int(required=True, load_only=True)
+    store = fields.Nested(lambda: PlainStoreSchema(), dump_only=True)
+    items = fields.List(fields.Nested(lambda: PlainItemSchema()), dump_only=True)
+
+
+class TagUpdateSchema(Schema):
+    # consist of name
     name = fields.Str()
 
 
@@ -34,6 +56,7 @@ class PlainItemSchema(Schema):
 class ItemSchema(PlainItemSchema):
     store_id = fields.Int(required=True, load_only=True)
     store = fields.Nested(lambda: PlainStoreSchema(), dump_only=True)
+    tags = fields.List(fields.Nested(lambda: PlainTagSchema()), dump_only=True)
 
 
 class ItemUpdateSchema(Schema):
@@ -42,3 +65,10 @@ class ItemUpdateSchema(Schema):
     category = fields.Str()
     description = fields.Str()
     price = fields.Float()
+
+
+class ItemAndTagSchema(Schema):
+    message = fields.Str()
+
+    item = fields.Nested(lambda: ItemSchema())
+    tag = fields.Nested(lambda: TagSchema())

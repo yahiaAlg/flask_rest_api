@@ -15,3 +15,9 @@ class ItemModel(db.Model):
     )
 
     store = db.relationship("StoreModel", back_populates="items")
+    tags = db.relationship("TagModel", back_populates="items", secondary="items_tags")
+
+    def __repr__(self) -> str:
+        return (
+            f"ItemModel(name={self.name}, price={self.price}, category={self.category})"
+        )

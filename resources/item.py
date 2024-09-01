@@ -4,7 +4,7 @@ from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from schemas import ItemSchema, ItemUpdateSchema
-from models import ItemModel
+from models import ItemModel, ItemTagModel, TagModel
 from db import db
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
@@ -64,3 +64,32 @@ class ItemList(MethodView):
             return abort(400, message="item already exists")
         except SQLAlchemyError:
             return abort(500, message="database error")
+
+
+@blp.route("/item/<string:item_id>/tag/<string:tag_id>")
+class LinkItemToTag(MethodView):
+    def post(self, item_id, tag_id):
+        item = ItemModel.query.get_or_404(item_id)
+        tag = TagModel.query.get_or_404(tag_id)
+        item.tags.append(tag)
+        try:
+            db.session.add(item)
+            db.session.commit()
+            return {"message": f" tag {tag} appended to  item {item}"}, 200
+
+        except SQLAlchemyError:
+            db.session.rollback()
+            return {"message": "An error occurred"}, 500
+
+    def delete(self, item_id, tag_id):
+        item = ItemModel.query.get_or_404(item_id)
+        tag = TagModel.query.get_or_404(tag_id)
+        item.tags.remove(tag)
+        try:
+            db.session.add(item)
+            db.session.commit()
+            return {"message": f" tag {tag} unlinked from item {item}"}, 200
+
+        except SQLAlchemyError:
+            db.session.rollback()
+            return {"message": "An error occurred"}, 500

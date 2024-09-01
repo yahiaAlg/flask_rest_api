@@ -8,3 +8,12 @@ class StoreModel(db.Model):
     items = db.relationship(
         "ItemModel", back_populates="store", lazy="dynamic", cascade="all, delete"
     )
+    tags = db.relationship(
+        "TagModel",
+        back_populates="store",
+        lazy="dynamic",
+        cascade="all, delete",
+    )
+
+    def __repr__(self) -> str:
+        return f"StoreModel(name={self.name})"

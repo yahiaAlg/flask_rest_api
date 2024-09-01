@@ -66,7 +66,7 @@ class Store(MethodView):
             abort(400, message="An error occurred while updating the item")
 
     def delete(self):
-        store_id = request.json["id"]
+        store_id = request.json["id"]  # type: ignore
         if not store_id:
             abort(400, message="Store ID is required")
         store = StoreModel.query.get_or_404(store_id)
